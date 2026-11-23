@@ -1,12 +1,12 @@
-import React from 'react';
 import { Editor } from '@tiptap/react';
 
 interface ToolbarProps {
   editor: Editor | null;
   onOpenWikiPicker?: () => void;
+  onInsertMermaid?: () => void;
 }
 
-export function Toolbar({ editor, onOpenWikiPicker }: ToolbarProps) {
+export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid }: ToolbarProps) {
   if (!editor) return null;
 
   const setExternalLink = () => {
@@ -134,6 +134,16 @@ export function Toolbar({ editor, onOpenWikiPicker }: ToolbarProps) {
         title="Code block"
       >
         Code
+      </button>
+
+      {/* Diagram (Mermaid) */}
+      <button
+        type="button"
+        onClick={onInsertMermaid}
+        className="px-2 py-1 font-sans text-pencil hover:text-ink hover:bg-margin transition-colors"
+        title="Insert Mermaid diagram (flowchart, sequence, architecture)"
+      >
+        Diagram
       </button>
 
       <div className="w-[1px] h-4 bg-rule mx-1" />
