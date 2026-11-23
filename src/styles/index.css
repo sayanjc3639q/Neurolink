@@ -1,0 +1,205 @@
+@import '@fontsource-variable/literata';
+@import '@fontsource/atkinson-hyperlegible';
+@import '@fontsource/ibm-plex-mono';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #F6F7F9;
+  --margin: #EDEFF4;
+  --ink: #1B2340;
+  --pencil: #5B6478;
+  --rule: #D5D9E3;
+  --biro: #2A4DB5;
+  --redline: #A93226;
+  --marker: #F2E85A;
+  --marker-text: #1B2340;
+}
+
+html.dark {
+  --paper: #10162B;
+  --margin: #161D36;
+  --ink: #E6E9F2;
+  --pencil: #9AA3BA;
+  --rule: #2A3354;
+  --biro: #8FAAF5;
+  --redline: #F08C80;
+  --marker: #6B6620;
+  --marker-text: #FFF9C2;
+}
+
+@layer base {
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Focus ring standards */
+  *:focus-visible {
+    outline: 2px solid var(--biro);
+    outline-offset: 2px;
+  }
+}
+
+/* Wiki-link styles */
+.wiki-link {
+  color: var(--biro);
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: text-decoration-thickness 0.1s ease;
+}
+
+.wiki-link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.wiki-link-red {
+  color: var(--redline);
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.wiki-link-red:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Marker highlight pass */
+mark, .highlight-marker {
+  background-color: var(--marker);
+  color: var(--marker-text);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  padding-left: 1px;
+  padding-right: 1px;
+  border-radius: 0;
+}
+
+/* Marginalia scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--paper);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border-radius: 2px;
+}
+
+/* Tiptap / ProseMirror specific resets */
+.ProseMirror {
+  outline: none;
+  min-height: 240px;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--pencil);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Prose typography overrides for Literata & Marginalia look */
+.prose-wiki {
+  font-family: Literata, Georgia, serif;
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: var(--ink);
+  max-width: 66ch;
+}
+
+@media (max-width: 640px) {
+  .prose-wiki {
+    font-size: 1.0625rem;
+  }
+}
+
+.prose-wiki h1,
+.prose-wiki h2,
+.prose-wiki h3 {
+  font-family: Literata, Georgia, serif;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.prose-wiki h2 {
+  font-size: 1.6rem;
+  margin-top: 4rem;
+  margin-bottom: 1rem;
+}
+
+.prose-wiki h3 {
+  font-size: 1.25rem;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-wiki p {
+  margin-bottom: 1.5rem;
+}
+
+.prose-wiki blockquote {
+  border-left: 3px solid var(--rule);
+  padding-left: 1rem;
+  font-style: italic;
+  color: var(--pencil);
+  margin: 1.5rem 0;
+}
+
+.prose-wiki code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9em;
+  background-color: var(--margin);
+  color: var(--ink);
+  padding: 0.15em 0.35em;
+  border-radius: 2px;
+}
+
+.prose-wiki pre {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  background-color: var(--margin);
+  color: var(--ink);
+  padding: 1rem;
+  border-radius: 2px;
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+}
+
+.prose-wiki pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.prose-wiki ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.prose-wiki ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.prose-wiki li {
+  margin-bottom: 0.5rem;
+}
