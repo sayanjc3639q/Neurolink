@@ -16,7 +16,7 @@ import {
   DocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Topic, SearchIndexDoc, MetaSearchIndexVersion } from './types';
+import { Topic, SearchIndexDoc, MetaSearchIndexVersion, WriterRecord } from './types';
 import { updateLocalIndexDoc, removeLocalIndexDoc } from './searchIndex';
 
 const TOPICS_COLLECTION = 'topics';
@@ -117,6 +117,39 @@ export async function saveTopic(
     contentText: topicData.contentText.slice(0, 5000),
     updatedAt: Date.now(),
   });
+}
+
+export async function getUserPublications(userUid: string, userEmail?: string | null): Promise<Topic[]> {
+  const colRef = collection(db, TOPICS_COLLECTION);
+  const snap = await getDocs(colRef);
+  return snap.docs
+    .map((d) => d.data() as Topic)
+    .filter((t) => {
+      if (t.authorUid && t.authorUid === userUid) return true;
+      if (userEmail && t.authorEmail && t.authorEmail.toLowerCase() === userEmail.toLowerCase()) return true;
+      return false;
+    });
+}
+
+export async function getAllWriters(): Promise<WriterRecord[]> {
+  const colRef = collection(db, 'writers');
+  const snap = await getDocs(colRef);
+  return snap.docs.map((d) => d.data() as WriterRecord);
+}
+
+export async function grantWriterAccess(uid: string, email: string, grantedBy: string): Promise<void> {
+  const writerRef = doc(db, 'writers', uid);
+  await setDoc(writerRef, {
+    uid,
+    email: email.trim().toLowerCase(),
+    addedAt: serverTimestamp(),
+    addedBy: grantedBy,
+  });
+}
+
+export async function revokeWriterAccess(uid: string): Promise<void> {
+  const writerRef = doc(db, 'writers', uid);
+  await deleteDoc(writerRef);
 }
 
 export async function deleteTopic(slug: string): Promise<void> {

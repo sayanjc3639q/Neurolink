@@ -108,20 +108,30 @@ export function Layout({ children, rightMargin, onOpenSearch }: LayoutProps) {
             <div className="flex items-center justify-between">
               <ThemeToggle />
               {user ? (
-                <button
-                  type="button"
-                  onClick={() => signOut()}
-                  className="text-pencil hover:text-ink"
-                >
-                  Sign out
-                </button>
+                <div className="flex items-center space-x-2">
+                  <Link to="/profile" className="text-pencil hover:text-ink font-medium">
+                    Profile
+                  </Link>
+                  <span className="text-pencil select-none">/</span>
+                  <button
+                    type="button"
+                    onClick={() => signOut()}
+                    className="text-pencil hover:text-ink"
+                  >
+                    Sign out
+                  </button>
+                </div>
               ) : (
                 <Link to="/login" className="text-pencil hover:text-ink">
                   Sign in
                 </Link>
               )}
             </div>
-            {isOwner && <div className="text-[11px] text-pencil">Owner session</div>}
+            {isOwner && (
+              <Link to="/profile" className="text-[11px] text-pencil hover:text-ink">
+                Owner / Writer session
+              </Link>
+            )}
           </div>
         </aside>
 

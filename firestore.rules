@@ -1,18 +1,30 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isOwner() {
-      // In production, configure request.auth.uid == 'REPLACE_WITH_OWNER_UID'
-      // Or in local testing/emulator, match owner id
+    
+    // Admin check: your exact Firebase Auth UID
+    function isAdmin() {
       return request.auth != null && (
-        request.auth.uid == 'REPLACE_WITH_OWNER_UID' ||
-        request.auth.token.firebase.sign_in_provider == 'google.com' && request.auth.uid == 'OWNER_UID_MOCK'
+        request.auth.uid == 'w8MTO5DEg0Miiz8RWCck5tfkE7R2' ||
+        request.auth.uid == 'OWNER_UID_MOCK'
       );
     }
 
+    // Writer check: admin OR any user granted access in the writers collection
+    function isWriter() {
+      return request.auth != null && (
+        isAdmin() ||
+        exists(/databases/$(database)/documents/writers/$(request.auth.uid))
+      );
+    }
+
+    // Topics collection
     match /topics/{slug} {
+      // Public read
       allow read: if true;
-      allow create, update: if isOwner()
+
+      // Admin or authorized writers can create and update with schema validation
+      allow create, update: if isWriter()
         && request.resource.data.slug == slug
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
@@ -21,12 +33,23 @@ service cloud.firestore {
         && request.resource.data.summary.size() <= 280
         && request.resource.data.tags is list
         && request.resource.data.tags.size() <= 20;
-      allow delete: if isOwner();
+
+      // Admin or authorized writers can delete topics
+      allow delete: if isWriter();
     }
 
+    // Metadata collection (search index version invalidation)
     match /meta/{doc} {
       allow read: if true;
-      allow write: if isOwner();
+      allow write: if isWriter();
+    }
+
+    // Writers collection (Admin panel permissions management)
+    match /writers/{userId} {
+      // Authenticated users can check their own access status
+      allow read: if request.auth != null;
+      // Only the Admin can grant or revoke writer access
+      allow write: if isAdmin();
     }
   }
 }

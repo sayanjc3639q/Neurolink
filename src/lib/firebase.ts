@@ -10,12 +10,12 @@ import {
 import { getAuth, connectAuthEmulator, Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'mock-api-key',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'neurolink-demo.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'neurolink-demo',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'neurolink-demo.appspot.com',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '1234567890',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:1234567890:web:abcdef',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyD9xz8PriVjEXwXfqpAkPEXFV5TIdFt0VY',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'neurolink-390bf.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'neurolink-390bf',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'neurolink-390bf.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '405300287284',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:405300287284:web:bb5383fdaa0b81ad833761',
 };
 
 // Initialize Firebase App
@@ -46,4 +46,6 @@ if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
   }
 }
 
-export const OWNER_UID = import.meta.env.VITE_OWNER_UID || '';
+// Hardcode default fallback admin UID so it always recognizes you even without .env reloading
+export const OWNER_UID =
+  (import.meta.env.VITE_OWNER_UID || '').trim() || 'w8MTO5DEg0Miiz8RWCck5tfkE7R2';
