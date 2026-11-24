@@ -10,6 +10,7 @@ import AllTopics from './pages/AllTopics';
 import RecentChanges from './pages/RecentChanges';
 import TagPage from './pages/TagPage';
 import Login from './pages/Login';
+import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import { getOrInitSearchIndex } from './lib/searchIndex';
 
@@ -83,6 +84,7 @@ export default function App() {
           <Route path="/recent" element={<RecentChanges />} />
           <Route path="/tag/:tag" element={<TagPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>

@@ -16,8 +16,17 @@ export interface Topic {
   headings: TopicHeading[];
   outgoingLinks: string[];   // slugs this topic links to (max ~200)
   tags: string[];            // lowercase
+  authorUid?: string;        // UID of creator/author
+  authorEmail?: string;      // Email of author
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+export interface WriterRecord {
+  uid: string;
+  email: string;
+  addedAt: Timestamp | number;
+  addedBy: string;
 }
 
 export interface SearchIndexDoc {

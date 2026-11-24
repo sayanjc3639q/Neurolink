@@ -8,7 +8,7 @@ export default function NewTopicPage() {
   const [searchParams] = useSearchParams();
   const prefilledTitle = searchParams.get('title') || '';
   const navigate = useNavigate();
-  const { isOwner, loading } = useAuth();
+  const { user, isOwner, loading } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
 
   if (loading) {
@@ -27,7 +27,14 @@ export default function NewTopicPage() {
   const handleSave = async (topicData: any) => {
     setIsSaving(true);
     try {
-      await saveTopic(topicData, true);
+      await saveTopic(
+        {
+          ...topicData,
+          authorUid: user?.uid,
+          authorEmail: user?.email || undefined,
+        },
+        true
+      );
       navigate(`/t/${topicData.slug}`);
     } finally {
       setIsSaving(false);

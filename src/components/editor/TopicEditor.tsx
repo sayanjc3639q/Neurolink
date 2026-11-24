@@ -197,6 +197,8 @@ export function TopicEditor({
         headings,
         outgoingLinks,
         tags,
+        ...(initialTopic?.authorUid ? { authorUid: initialTopic.authorUid } : {}),
+        ...(initialTopic?.authorEmail ? { authorEmail: initialTopic.authorEmail } : {}),
       });
 
       localStorage.removeItem(localStorageKey);
