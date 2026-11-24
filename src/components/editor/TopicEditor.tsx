@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
@@ -10,6 +10,7 @@ import { common, createLowlight } from 'lowlight';
 import { Toolbar } from './Toolbar';
 import { WikiLinkExtension } from './WikiLinkNode';
 import { WikiLinkSuggestionExtension } from './WikiLinkSuggestion';
+import { MermaidDiagram } from '../MermaidDiagram';
 import { titleToSlug, isValidSlug } from '../../lib/slug';
 import { extractLinksAndMetadata } from '../../lib/extractLinks';
 import { getAllIndexedTopics } from '../../lib/searchIndex';
@@ -53,6 +54,13 @@ export function TopicEditor({
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved' | 'draft'>('saved');
   const [lastDraftTime, setLastDraftTime] = useState<string>('');
   const [showWikiModal, setShowWikiModal] = useState(false);
+  const [showDiagramModal, setShowDiagramModal] = useState(false);
+  const [diagramPreviewCode, setDiagramPreviewCode] = useState(`graph TD
+    Client[Client / Browser] -->|HTTP / TLS| CDN[Edge CDN / Proxy]
+    CDN -->|Route| AppServer[App Server]
+    AppServer -->|Cache| Redis[(Redis Cache)]
+    AppServer -->|Query| DB[(Primary Database)]
+`);
   const [wikiSearch, setWikiSearch] = useState('');
 
   const localStorageKey = `neurolink_draft_${slug || 'new'}`;
@@ -68,7 +76,7 @@ export function TopicEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3] },
-        codeBlock: false, // Replaced by CodeBlockLowlight
+        codeBlock: false,
       }),
       Highlight.configure({ multicolor: false }),
       LinkExtension.configure({
@@ -78,7 +86,7 @@ export function TopicEditor({
         },
       }),
       Placeholder.configure({
-        placeholder: 'Write your notes here... (type [[ to insert a link to another topic)',
+        placeholder: 'Write your notes here... (type [[ to insert a link to another topic, or use Diagram in toolbar)',
       }),
       CodeBlockLowlight.configure({
         lowlight,
@@ -191,7 +199,6 @@ export function TopicEditor({
         tags,
       });
 
-      // Clear draft on successful explicit save
       localStorage.removeItem(localStorageKey);
       setSaveStatus('saved');
     } catch (err: any) {
@@ -205,6 +212,21 @@ export function TopicEditor({
     editor.chain().focus().setWikiLink({ slug: targetSlug, label: targetTitle }).run();
     setShowWikiModal(false);
     setWikiSearch('');
+  };
+
+  const insertDiagram = () => {
+    if (!editor) return;
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'codeBlock',
+        attrs: { language: 'mermaid' },
+        content: [{ type: 'text', text: diagramPreviewCode.trim() }],
+      })
+      .run();
+    setShowDiagramModal(false);
+    setSaveStatus('unsaved');
   };
 
   const allTopics = getAllIndexedTopics();
@@ -313,9 +335,13 @@ export function TopicEditor({
         </div>
       </div>
 
-      {/* Toolbar */}
+      {/* Toolbar with Diagram Support */}
       <div className="mb-4">
-        <Toolbar editor={editor} onOpenWikiPicker={() => setShowWikiModal(true)} />
+        <Toolbar
+          editor={editor}
+          onOpenWikiPicker={() => setShowWikiModal(true)}
+          onInsertMermaid={() => setShowDiagramModal(true)}
+        />
       </div>
 
       {/* Editor Content Area */}
@@ -357,6 +383,116 @@ export function TopicEditor({
           </button>
         )}
       </div>
+
+      {/* Mermaid Diagram Insert Modal */}
+      {showDiagramModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/20"
+          onClick={() => setShowDiagramModal(false)}
+        >
+          <div
+            className="w-full max-w-2xl bg-paper border border-rule shadow-lg p-5 font-sans"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-rule pb-2 mb-3">
+              <span className="font-serif font-semibold text-base text-ink">
+                Insert Mermaid diagram
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowDiagramModal(false)}
+                className="text-xs text-pencil hover:text-ink"
+              >
+                &times; Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-pencil">Diagram code:</label>
+                  <div className="flex gap-2 text-[11px] text-biro">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDiagramPreviewCode(`graph TD
+    Client[Client / Browser] -->|HTTP / TLS| CDN[Edge CDN / Proxy]
+    CDN -->|Route| AppServer[App Server]
+    AppServer -->|Cache| Redis[(Redis Cache)]
+    AppServer -->|Query| DB[(Primary Database)]
+`)
+                      }
+                      className="hover:underline"
+                    >
+                      Architecture
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDiagramPreviewCode(`sequenceDiagram
+    autonumber
+    Client->>Server: POST /login (credentials)
+    Server-->>Client: 200 OK (JWT Session)
+    Client->>Server: GET /api/data (Bearer Token)
+    Server-->>Client: 200 OK (Protected JSON)
+`)
+                      }
+                      className="hover:underline"
+                    >
+                      Sequence
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDiagramPreviewCode(`flowchart LR
+    A[Start] --> B{Is input valid?}
+    B -- Yes --> C[Process Data]
+    B -- No --> D[Return 400 Bad Request]
+    C --> E[Done]
+`)
+                      }
+                      className="hover:underline"
+                    >
+                      Flowchart
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={diagramPreviewCode}
+                  onChange={(e) => setDiagramPreviewCode(e.target.value)}
+                  rows={9}
+                  className="w-full font-mono text-xs p-2 bg-margin border border-rule text-ink focus:outline-none"
+                  placeholder="Enter Mermaid diagram code..."
+                />
+              </div>
+
+              <div>
+                <div className="text-xs text-pencil mb-1">Live preview:</div>
+                <div className="border border-rule bg-paper p-2 max-h-56 overflow-auto">
+                  <MermaidDiagram code={diagramPreviewCode} />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-rule flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowDiagramModal(false)}
+                className="text-xs text-pencil hover:text-ink px-2 py-1"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={insertDiagram}
+                className="bg-ink text-paper text-xs font-medium px-4 py-1.5 hover:opacity-90"
+              >
+                Insert diagram into note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Topic Link Picker Modal */}
       {showWikiModal && (
