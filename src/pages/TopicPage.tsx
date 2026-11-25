@@ -110,9 +110,20 @@ export default function TopicPage({ setRightMargin }: { setRightMargin: (node: R
       {/* Header */}
       <header className="border-b border-rule pb-6">
         <div className="flex items-baseline justify-between mb-2">
-          <h1 className="font-serif font-semibold text-3xl sm:text-4xl text-ink tracking-tight">
-            {topic.title}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-serif font-semibold text-3xl sm:text-4xl text-ink tracking-tight">
+              {topic.title}
+            </h1>
+            {topic.topicType && topic.topicType !== 'note' && (
+              <span className="text-[11px] font-sans font-semibold uppercase tracking-wider px-2 py-0.5 bg-margin border border-rule text-pencil rounded">
+                {topic.topicType === 'comparison'
+                  ? 'Comparison'
+                  : topic.topicType === 'review'
+                  ? 'Review'
+                  : 'Technical Blog'}
+              </span>
+            )}
+          </div>
           {isOwner && (
             <Link
               to={`/t/${slug}/edit`}

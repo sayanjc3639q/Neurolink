@@ -5,11 +5,17 @@ import Highlight from '@tiptap/extension-highlight';
 import LinkExtension from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import ImageExtension from '@tiptap/extension-image';
 import { common, createLowlight } from 'lowlight';
 
 import { Toolbar } from './Toolbar';
 import { WikiLinkExtension } from './WikiLinkNode';
 import { WikiLinkSuggestionExtension } from './WikiLinkSuggestion';
+import { SelectionLinkModal } from './SelectionLinkModal';
 import { MermaidDiagram } from '../MermaidDiagram';
 import { titleToSlug, isValidSlug } from '../../lib/slug';
 import { extractLinksAndMetadata } from '../../lib/extractLinks';
@@ -30,6 +36,8 @@ interface TopicEditorProps {
     headings: any[];
     outgoingLinks: string[];
     tags: string[];
+    topicType?: 'note' | 'comparison' | 'review' | 'blog';
+    ignorePrefixSorting?: boolean;
   }) => Promise<void>;
   onDelete?: () => Promise<void>;
   onDiscard: () => void;
@@ -48,6 +56,12 @@ export function TopicEditor({
   const [title, setTitle] = useState(initialTopic?.title || initialTitle);
   const [slug, setSlug] = useState(initialTopic?.slug || titleToSlug(initialTitle));
   const [isSlugManual, setIsSlugManual] = useState(false);
+  const [topicType, setTopicType] = useState<'note' | 'comparison' | 'review' | 'blog'>(
+    initialTopic?.topicType || 'note'
+  );
+  const [ignorePrefixSorting, setIgnorePrefixSorting] = useState<boolean>(
+    initialTopic?.ignorePrefixSorting ?? false
+  );
   const [summary, setSummary] = useState(initialTopic?.summary || '');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>(initialTopic?.tags || []);
@@ -55,6 +69,9 @@ export function TopicEditor({
   const [lastDraftTime, setLastDraftTime] = useState<string>('');
   const [showWikiModal, setShowWikiModal] = useState(false);
   const [showDiagramModal, setShowDiagramModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageCaption, setImageCaption] = useState('');
   const [diagramPreviewCode, setDiagramPreviewCode] = useState(`graph TD
     Client[Client / Browser] -->|HTTP / TLS| CDN[Edge CDN / Proxy]
     CDN -->|Route| AppServer[App Server]
@@ -91,10 +108,36 @@ export function TopicEditor({
       CodeBlockLowlight.configure({
         lowlight,
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      ImageExtension.configure({
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto border border-rule rounded my-4 mx-auto block',
+        },
+      }),
       WikiLinkExtension,
       WikiLinkSuggestionExtension,
     ],
     content: initialTopic?.content ? JSON.parse(initialTopic.content) : '',
+    editorProps: {
+      handlePaste: (view, event) => {
+        const text = event.clipboardData?.getData('text/plain');
+        if (text && /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i.test(text.trim())) {
+          event.preventDefault();
+          const schema = view.state.schema;
+          const node = schema.nodes.image.create({ src: text.trim() });
+          const transaction = view.state.tr.replaceSelectionWith(node);
+          view.dispatch(transaction);
+          return true;
+        }
+        return false;
+      },
+    },
     onUpdate: () => {
       setSaveStatus('unsaved');
     },
@@ -197,6 +240,8 @@ export function TopicEditor({
         headings,
         outgoingLinks,
         tags,
+        topicType,
+        ignorePrefixSorting,
         ...(initialTopic?.authorUid ? { authorUid: initialTopic.authorUid } : {}),
         ...(initialTopic?.authorEmail ? { authorEmail: initialTopic.authorEmail } : {}),
       });
@@ -231,6 +276,107 @@ export function TopicEditor({
     setSaveStatus('unsaved');
   };
 
+  const insertImageFromModal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!imageUrl.trim() || !editor) return;
+    editor
+      .chain()
+      .focus()
+      .setImage({
+        src: imageUrl.trim(),
+        alt: imageCaption.trim() || 'Illustration',
+        title: imageCaption.trim() || undefined,
+      })
+      .run();
+    setImageUrl('');
+    setImageCaption('');
+    setShowImageModal(false);
+    setSaveStatus('unsaved');
+  };
+
+  const applyTemplate = (type: 'comparison' | 'review' | 'blog') => {
+    if (!editor) return;
+    if (editor.getText().trim() && !window.confirm('Apply template? This will append structure to your editor.')) {
+      return;
+    }
+
+    setTopicType(type);
+
+    if (type === 'comparison') {
+      editor
+        .chain()
+        .focus()
+        .insertContent(`
+<h2>Overview & Objectives</h2>
+<p>Briefly describe the two technologies being compared and the architectural goals.</p>
+<h2>Feature Matrix</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Dimension</th>
+      <th>Technology A</th>
+      <th>Technology B</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Architecture</td>
+      <td>Monolithic / Single-threaded</td>
+      <td>Distributed / Multi-threaded</td>
+    </tr>
+    <tr>
+      <td>Performance & Latency</td>
+      <td>Sub-millisecond memory-first</td>
+      <td>High-throughput batched IO</td>
+    </tr>
+    <tr>
+      <td>Operational Complexity</td>
+      <td>Minimal setup, local config</td>
+      <td>Cluster management required</td>
+    </tr>
+  </tbody>
+</table>
+<h2>Trade-offs & Decision Guide</h2>
+<p>When to select Technology A vs Technology B.</p>
+`)
+        .run();
+    } else if (type === 'review') {
+      editor
+        .chain()
+        .focus()
+        .insertContent(`
+<h2>Technology Stack Overview</h2>
+<p>A technical assessment of the combined stack and design patterns.</p>
+<h2>Integration Strengths</h2>
+<ul>
+  <li>Smooth interoperability and shared protocol support</li>
+  <li>Unified developer experience and tooling</li>
+</ul>
+<h2>Pain Points & Friction</h2>
+<ul>
+  <li>Complex serialization boundaries</li>
+  <li>Versioning and deployment coordination</li>
+</ul>
+<h2>Verdict & Recommendation</h2>
+<p>Summary of long-term maintainability and performance observations.</p>
+`)
+        .run();
+    } else if (type === 'blog') {
+      editor
+        .chain()
+        .focus()
+        .insertContent(`
+<h2>The Problem Space</h2>
+<p>Describe the technical challenge or historical context that necessitated this solution.</p>
+<h2>Architectural Deep Dive</h2>
+<p>Walk through the internal mechanics, memory model, and execution flow.</p>
+<h2>Practical Takeaways</h2>
+<p>Summarize critical lessons learned, key benchmarks, and actionable insights.</p>
+`)
+        .run();
+    }
+  };
+
   const allTopics = getAllIndexedTopics();
   const filteredWikiTopics = allTopics.filter((t) =>
     t.title.toLowerCase().includes(wikiSearch.toLowerCase().trim())
@@ -255,6 +401,50 @@ export function TopicEditor({
 
       {/* Title Field */}
       <div className="mb-4">
+        {/* Document Type Selector & Quick Templates */}
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-rule/50 text-xs text-pencil">
+          <div className="flex items-center space-x-2">
+            <span className="font-semibold text-ink">Topic Type:</span>
+            <select
+              value={topicType}
+              onChange={(e) => setTopicType(e.target.value as any)}
+              className="bg-margin border border-rule px-2 py-0.5 text-xs text-ink focus:outline-none"
+            >
+              <option value="note">Study Note (Standard)</option>
+              <option value="comparison">Technology Comparison</option>
+              <option value="review">Technology Review</option>
+              <option value="blog">Technical Blog / Essay</option>
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-1.5 text-[11px]">
+            <span className="text-pencil select-none">Templates:</span>
+            <button
+              type="button"
+              onClick={() => applyTemplate('comparison')}
+              className="hover:text-biro underline"
+            >
+              Comparison
+            </button>
+            <span className="text-rule">|</span>
+            <button
+              type="button"
+              onClick={() => applyTemplate('review')}
+              className="hover:text-biro underline"
+            >
+              Review
+            </button>
+            <span className="text-rule">|</span>
+            <button
+              type="button"
+              onClick={() => applyTemplate('blog')}
+              className="hover:text-biro underline"
+            >
+              Blog
+            </button>
+          </div>
+        </div>
+
         <input
           type="text"
           value={title}
@@ -266,23 +456,43 @@ export function TopicEditor({
           maxLength={150}
           className="w-full font-serif font-semibold text-2xl sm:text-3xl text-ink bg-transparent border-b border-rule pb-2 placeholder:text-pencil focus:outline-none"
         />
-        <div className="flex items-center space-x-2 mt-2 text-xs text-pencil">
-          <span>Slug: /t/</span>
-          {isEditing ? (
-            <span className="font-mono text-ink">{slug}</span>
-          ) : (
+        
+        {/* Categorization & Slug Row */}
+        <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs text-pencil">
+          <div className="flex items-center space-x-2">
+            <span>Slug: /t/</span>
+            {isEditing ? (
+              <span className="font-mono text-ink">{slug}</span>
+            ) : (
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) => {
+                  setSlug(e.target.value);
+                  setIsSlugManual(true);
+                  setSaveStatus('unsaved');
+                }}
+                placeholder="topic-slug"
+                className="font-mono bg-margin px-1.5 py-0.5 border border-rule text-ink text-xs focus:outline-none"
+              />
+            )}
+          </div>
+
+          {/* Checkbox: Ignore leading non-alphanumeric symbols rule */}
+          <label className="inline-flex items-center space-x-1.5 cursor-pointer text-pencil hover:text-ink select-none">
             <input
-              type="text"
-              value={slug}
+              type="checkbox"
+              checked={!ignorePrefixSorting}
               onChange={(e) => {
-                setSlug(e.target.value);
-                setIsSlugManual(true);
+                setIgnorePrefixSorting(!e.target.checked);
                 setSaveStatus('unsaved');
               }}
-              placeholder="topic-slug"
-              className="font-mono bg-margin px-1.5 py-0.5 border border-rule text-ink text-xs focus:outline-none"
+              className="accent-ink rounded"
             />
-          )}
+            <span title="If checked, titles starting with symbols like _ or # are categorized under the letter immediately following">
+              Categorize by immediate letter if title begins with symbol
+            </span>
+          </label>
         </div>
       </div>
 
@@ -343,12 +553,14 @@ export function TopicEditor({
           editor={editor}
           onOpenWikiPicker={() => setShowWikiModal(true)}
           onInsertMermaid={() => setShowDiagramModal(true)}
+          onInsertImage={() => setShowImageModal(true)}
         />
       </div>
 
       {/* Editor Content Area */}
-      <div className="min-h-[300px] border border-rule bg-paper p-4 prose-wiki">
+      <div className="min-h-[300px] border border-rule bg-paper p-4 prose-wiki relative">
         <EditorContent editor={editor} />
+        <SelectionLinkModal editor={editor} />
       </div>
 
       {/* Action Buttons */}
@@ -385,6 +597,90 @@ export function TopicEditor({
           </button>
         )}
       </div>
+
+      {/* Image Insert Modal */}
+      {showImageModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/20"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div
+            className="w-full max-w-md bg-paper border border-rule shadow-lg p-5 font-sans"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-rule pb-2 mb-3">
+              <span className="font-serif font-semibold text-base text-ink">
+                Insert Image by URL
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowImageModal(false)}
+                className="text-xs text-pencil hover:text-ink"
+              >
+                &times; Close
+              </button>
+            </div>
+
+            <form onSubmit={insertImageFromModal} className="space-y-3">
+              <div>
+                <label className="block text-xs text-pencil mb-1">Image Address URL</label>
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/diagram.png"
+                  required
+                  autoFocus
+                  className="w-full text-xs p-2 bg-margin border border-rule text-ink focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-pencil mb-1">Caption / Alt Text (Optional)</label>
+                <input
+                  type="text"
+                  value={imageCaption}
+                  onChange={(e) => setImageCaption(e.target.value)}
+                  placeholder="Figure 1: Architecture diagram"
+                  className="w-full text-xs p-2 bg-margin border border-rule text-ink focus:outline-none"
+                />
+              </div>
+
+              {imageUrl.trim() && (
+                <div>
+                  <div className="text-[11px] text-pencil mb-1">Preview:</div>
+                  <div className="border border-rule p-2 max-h-40 overflow-hidden flex items-center justify-center bg-paper">
+                    <img
+                      src={imageUrl.trim()}
+                      alt="Preview"
+                      className="max-h-36 max-w-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 text-right space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowImageModal(false)}
+                  className="text-xs text-pencil hover:text-ink px-2 py-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-ink text-paper text-xs font-medium px-4 py-1.5 hover:opacity-90"
+                >
+                  Insert image
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Mermaid Diagram Insert Modal */}
       {showDiagramModal && (

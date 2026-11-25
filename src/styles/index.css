@@ -203,3 +203,69 @@ mark, .highlight-marker {
 .prose-wiki li {
   margin-bottom: 0.5rem;
 }
+
+/* Table styling for Marginalia */
+.prose-wiki table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.875rem;
+}
+
+.prose-wiki th {
+  background-color: var(--margin);
+  color: var(--ink);
+  font-family: Literata, Georgia, serif;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--rule);
+}
+
+.prose-wiki td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--rule);
+  color: var(--ink);
+}
+
+.prose-wiki tr:hover td {
+  background-color: rgba(0, 0, 0, 0.015);
+}
+
+html.dark .prose-wiki tr:hover td {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* ProseMirror table controls */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  min-width: 1em;
+  border: 1px solid var(--rule);
+  padding: 6px 8px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror th {
+  background-color: var(--margin);
+  font-weight: 600;
+  text-align: left;
+}
+
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(42, 77, 181, 0.08);
+  pointer-events: none;
+}
