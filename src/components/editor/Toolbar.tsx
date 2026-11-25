@@ -4,9 +4,10 @@ interface ToolbarProps {
   editor: Editor | null;
   onOpenWikiPicker?: () => void;
   onInsertMermaid?: () => void;
+  onInsertImage?: () => void;
 }
 
-export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid }: ToolbarProps) {
+export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertImage }: ToolbarProps) {
   if (!editor) return null;
 
   const setExternalLink = () => {
@@ -145,6 +146,79 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid }: ToolbarPr
       >
         Diagram
       </button>
+
+      {/* Image */}
+      <button
+        type="button"
+        onClick={onInsertImage}
+        className="px-2 py-1 font-sans text-pencil hover:text-ink hover:bg-margin transition-colors"
+        title="Insert image by URL"
+      >
+        Image
+      </button>
+
+      {/* Table */}
+      <button
+        type="button"
+        onClick={() =>
+          editor
+            .chain()
+            .focus()
+            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+            .run()
+        }
+        className={`px-2 py-1 font-sans transition-colors ${
+          editor.isActive('table') ? 'bg-margin text-ink' : 'text-pencil hover:text-ink'
+        }`}
+        title="Insert 3x3 table"
+      >
+        Table
+      </button>
+
+      {editor.isActive('table') && (
+        <div className="flex items-center gap-1 border-l border-rule pl-1">
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().addColumnAfter().run()}
+            className="px-1.5 py-0.5 text-[11px] text-pencil hover:text-ink hover:bg-margin"
+            title="Add column after"
+          >
+            +Col
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().addRowAfter().run()}
+            className="px-1.5 py-0.5 text-[11px] text-pencil hover:text-ink hover:bg-margin"
+            title="Add row after"
+          >
+            +Row
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().deleteColumn().run()}
+            className="px-1.5 py-0.5 text-[11px] text-redline hover:bg-margin"
+            title="Delete column"
+          >
+            -Col
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().deleteRow().run()}
+            className="px-1.5 py-0.5 text-[11px] text-redline hover:bg-margin"
+            title="Delete row"
+          >
+            -Row
+          </button>
+          <button
+            type="button"
+            onClick={() => editor.chain().focus().deleteTable().run()}
+            className="px-1.5 py-0.5 text-[11px] text-redline hover:bg-margin font-semibold"
+            title="Delete table"
+          >
+            Del Tab
+          </button>
+        </div>
+      )}
 
       <div className="w-[1px] h-4 bg-rule mx-1" />
 

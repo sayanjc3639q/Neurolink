@@ -129,6 +129,48 @@ export function TopicView({ contentJson, onLinkFollow }: TopicViewProps) {
       }
       case 'horizontalRule':
         return <hr key={idx} className="my-8 border-rule" />;
+      case 'image':
+        return (
+          <figure key={idx} className="my-6">
+            <img
+              src={node.attrs?.src}
+              alt={node.attrs?.alt || 'Topic illustration'}
+              title={node.attrs?.title || ''}
+              className="max-w-full h-auto border border-rule rounded mx-auto"
+              loading="lazy"
+            />
+            {node.attrs?.title && (
+              <figcaption className="text-center text-xs text-pencil italic mt-2">
+                {node.attrs.title}
+              </figcaption>
+            )}
+          </figure>
+        );
+      case 'table':
+        return (
+          <div key={idx} className="overflow-x-auto my-6">
+            <table className="w-full border-collapse border border-rule text-sm">
+              <tbody>{children}</tbody>
+            </table>
+          </div>
+        );
+      case 'tableRow':
+        return <tr key={idx} className="border-b border-rule">{children}</tr>;
+      case 'tableHeader':
+        return (
+          <th
+            key={idx}
+            className="border border-rule bg-margin px-3 py-2 text-left font-serif font-semibold text-ink text-xs"
+          >
+            {children}
+          </th>
+        );
+      case 'tableCell':
+        return (
+          <td key={idx} className="border border-rule px-3 py-2 text-ink text-xs align-top">
+            {children}
+          </td>
+        );
       default:
         return <div key={idx}>{children}</div>;
     }

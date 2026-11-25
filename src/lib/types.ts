@@ -6,6 +6,8 @@ export interface TopicHeading {
   text: string;
 }
 
+export type TopicType = 'note' | 'comparison' | 'review' | 'blog';
+
 export interface Topic {
   slug: string;              // == doc id
   title: string;
@@ -16,6 +18,8 @@ export interface Topic {
   headings: TopicHeading[];
   outgoingLinks: string[];   // slugs this topic links to (max ~200)
   tags: string[];            // lowercase
+  topicType?: TopicType;     // 'note' (default), 'comparison', 'review', or 'blog'
+  ignorePrefixSorting?: boolean; // If false (default), skip leading non-alphanumeric chars for A-Z grouping
   authorUid?: string;        // UID of creator/author
   authorEmail?: string;      // Email of author
   createdAt: Timestamp;
