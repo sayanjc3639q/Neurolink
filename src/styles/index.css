@@ -118,7 +118,7 @@ mark, .highlight-marker {
   font-size: 1.125rem;
   line-height: 1.7;
   color: var(--ink);
-  max-width: 66ch;
+  max-width: 100%;
 }
 
 @media (max-width: 640px) {
