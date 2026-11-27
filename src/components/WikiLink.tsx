@@ -54,15 +54,10 @@ export function WikiLink({ slug, label, onLinkFollow }: WikiLinkProps) {
   };
 
   if (!exists) {
-    return (
-      <span
-        onClick={handleClick}
-        title={isOwner ? "No page yet. Click to create." : "No page yet."}
-        className="wiki-link-red select-none"
-      >
-        {label}
-      </span>
-    );
+    // If not found in DB, hide the [[ ]] and render as clean plain text.
+    // If the topic is created in the future, topicExistsLocally(slug) will become true
+    // and it will auto-detect and become a clickable wiki link!
+    return <span className="text-ink">{label}</span>;
   }
 
   return (

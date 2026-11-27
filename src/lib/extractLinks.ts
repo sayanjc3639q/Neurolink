@@ -67,9 +67,17 @@ export function extractLinksAndMetadata(contentJson: string | object): {
       }
     }
 
-    // 3. Accumulate text
+    // 3. Accumulate text and detect raw [[topic]] slugs
     if (node.text) {
       textPieces.push(node.text);
+      const rawMatches = node.text.matchAll(/\[\[(.*?)\]\]/g);
+      for (const m of rawMatches) {
+        const title = m[1]?.trim();
+        if (title) {
+          const s = titleToSlug(title);
+          if (s) outgoingLinksSet.add(s);
+        }
+      }
     }
 
     // Recurse children

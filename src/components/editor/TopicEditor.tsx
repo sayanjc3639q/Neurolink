@@ -17,6 +17,7 @@ import { WikiLinkExtension } from './WikiLinkNode';
 import { WikiLinkSuggestionExtension } from './WikiLinkSuggestion';
 import { SelectionLinkModal } from './SelectionLinkModal';
 import { MermaidDiagram } from '../MermaidDiagram';
+import { generateTopicWithDeepSeek } from '../../lib/deepseek';
 import { titleToSlug, isValidSlug } from '../../lib/slug';
 import { extractLinksAndMetadata } from '../../lib/extractLinks';
 import { getAllIndexedTopics } from '../../lib/searchIndex';
@@ -72,6 +73,10 @@ export function TopicEditor({
   const [showImageModal, setShowImageModal] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [imageCaption, setImageCaption] = useState('');
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [diagramPreviewCode, setDiagramPreviewCode] = useState(`graph TD
     Client[Client / Browser] -->|HTTP / TLS| CDN[Edge CDN / Proxy]
     CDN -->|Route| AppServer[App Server]
@@ -142,6 +147,21 @@ export function TopicEditor({
       setSaveStatus('unsaved');
     },
   });
+
+  // Populate editor content when initialTopic arrives or changes
+  useEffect(() => {
+    if (!editor) return;
+    if (initialTopic?.content) {
+      try {
+        const parsed = typeof initialTopic.content === 'string'
+          ? JSON.parse(initialTopic.content)
+          : initialTopic.content;
+        editor.commands.setContent(parsed);
+      } catch (err) {
+        console.warn('Could not parse initial topic content:', err);
+      }
+    }
+  }, [editor, initialTopic]);
 
   // Check for local draft on mount
   useEffect(() => {
@@ -274,6 +294,41 @@ export function TopicEditor({
       .run();
     setShowDiagramModal(false);
     setSaveStatus('unsaved');
+  };
+
+  const handleGenerateWithAi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiPrompt.trim() || !editor) return;
+
+    setIsAiGenerating(true);
+    setAiError(null);
+    try {
+      const generated = await generateTopicWithDeepSeek(aiPrompt.trim(), topicType);
+
+      if (generated.title && (!title || !title.trim())) {
+        setTitle(generated.title);
+        if (!isEditing && !isSlugManual) {
+          setSlug(titleToSlug(generated.title));
+        }
+      }
+      if (generated.summary) {
+        setSummary(generated.summary);
+      }
+      if (generated.tags && Array.isArray(generated.tags)) {
+        setTags((prev) => Array.from(new Set([...prev, ...generated.tags])));
+      }
+      if (generated.contentHtml) {
+        editor.commands.setContent(generated.contentHtml);
+      }
+
+      setSaveStatus('unsaved');
+      setShowAiModal(false);
+      setAiPrompt('');
+    } catch (err: any) {
+      setAiError(err.message || 'Failed to generate topic with DeepSeek');
+    } finally {
+      setIsAiGenerating(false);
+    }
   };
 
   const insertImageFromModal = (e: React.FormEvent) => {
@@ -418,6 +473,16 @@ export function TopicEditor({
           </div>
 
           <div className="flex items-center space-x-1.5 text-[11px]">
+            <button
+              type="button"
+              onClick={() => setShowAiModal(true)}
+              className="bg-marker text-marker-text px-2 py-0.5 font-semibold border border-rule hover:opacity-90 flex items-center gap-1"
+              title="Generate complete topic with DeepSeek AI"
+            >
+              <span>✦</span>
+              <span>DeepSeek AI</span>
+            </button>
+            <span className="text-rule">|</span>
             <span className="text-pencil select-none">Templates:</span>
             <button
               type="button"
@@ -547,8 +612,8 @@ export function TopicEditor({
         </div>
       </div>
 
-      {/* Toolbar with Diagram Support */}
-      <div className="mb-4">
+      {/* Toolbar with Diagram Support - Sticky to viewport */}
+      <div className="sticky top-0 z-30 mb-4 bg-paper py-2 -mx-2 px-2 border-b border-rule shadow-sm">
         <Toolbar
           editor={editor}
           onOpenWikiPicker={() => setShowWikiModal(true)}
@@ -597,6 +662,87 @@ export function TopicEditor({
           </button>
         )}
       </div>
+
+      {/* DeepSeek AI Generator Modal */}
+      {showAiModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/20"
+          onClick={() => !isAiGenerating && setShowAiModal(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-paper border border-rule shadow-lg p-5 font-sans"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-rule pb-2 mb-3">
+              <span className="font-serif font-semibold text-base text-ink flex items-center gap-1.5">
+                <span className="bg-marker text-marker-text px-1 text-xs">AI</span>
+                Generate Topic with DeepSeek
+              </span>
+              <button
+                type="button"
+                disabled={isAiGenerating}
+                onClick={() => setShowAiModal(false)}
+                className="text-xs text-pencil hover:text-ink disabled:opacity-30"
+              >
+                &times; Close
+              </button>
+            </div>
+
+            {aiError && (
+              <div className="mb-3 p-2 bg-margin border border-redline text-xs text-redline">
+                {aiError}
+              </div>
+            )}
+
+            <form onSubmit={handleGenerateWithAi} className="space-y-3">
+              <div>
+                <label className="block text-xs text-pencil mb-1">
+                  Topic Concept or Question:
+                </label>
+                <textarea
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder="e.g. Raft Consensus Algorithm, Webhooks vs WebSockets, Zero-Copy Networking in Linux..."
+                  rows={3}
+                  required
+                  autoFocus
+                  disabled={isAiGenerating}
+                  className="w-full text-xs p-2.5 bg-margin border border-rule text-ink focus:outline-none"
+                />
+              </div>
+
+              <div className="text-[11px] text-pencil leading-relaxed bg-margin p-2 border border-rule">
+                DeepSeek will automatically generate the <strong>title</strong>, a concise <strong>summary</strong> (&lt;280 chars), relevant <strong>tags</strong>, a structured <strong>Table of Contents</strong>, inline <strong>[[wiki-links]]</strong>, a <strong>Mermaid diagram</strong>, and <strong>comparison tables</strong> formatted for Neurolink.
+              </div>
+
+              <div className="pt-2 text-right space-x-2">
+                <button
+                  type="button"
+                  disabled={isAiGenerating}
+                  onClick={() => setShowAiModal(false)}
+                  className="text-xs text-pencil hover:text-ink px-2 py-1 disabled:opacity-30"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAiGenerating || !aiPrompt.trim()}
+                  className="bg-ink text-paper text-xs font-medium px-4 py-1.5 hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  {isAiGenerating ? (
+                    <>
+                      <span className="animate-spin text-sm">⟳</span>
+                      <span>Generating with DeepSeek...</span>
+                    </>
+                  ) : (
+                    <span>Generate topic</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Image Insert Modal */}
       {showImageModal && (

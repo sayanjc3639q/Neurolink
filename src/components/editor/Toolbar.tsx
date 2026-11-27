@@ -10,6 +10,9 @@ interface ToolbarProps {
 export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertImage }: ToolbarProps) {
   if (!editor) return null;
 
+  const activeStyle = 'bg-ink text-paper ring-1 ring-ink font-bold';
+  const inactiveStyle = 'text-pencil hover:text-ink hover:bg-margin';
+
   const setExternalLink = () => {
     const previousUrl = editor.getAttributes('link').href;
     const url = window.prompt('URL', previousUrl);
@@ -22,13 +25,13 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
   };
 
   return (
-    <div className="border border-rule bg-paper p-1 flex flex-wrap items-center gap-1 text-xs select-none sticky top-12 md:top-0 z-20 shadow-sm">
+    <div className="border border-rule bg-paper p-1 flex flex-wrap items-center gap-1 text-xs select-none shadow-sm">
       {/* Bold */}
       <button
         type="button"
         onClick={() => editor.chain().focus().toggleBold().run()}
         className={`px-2 py-1 font-semibold transition-colors ${
-          editor.isActive('bold') ? 'bg-margin text-ink' : 'text-pencil hover:text-ink'
+          editor.isActive('bold') ? activeStyle : inactiveStyle
         }`}
         title="Bold (Ctrl+B)"
       >
@@ -40,7 +43,7 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
         type="button"
         onClick={() => editor.chain().focus().toggleItalic().run()}
         className={`px-2 py-1 italic transition-colors ${
-          editor.isActive('italic') ? 'bg-margin text-ink' : 'text-pencil hover:text-ink'
+          editor.isActive('italic') ? activeStyle : inactiveStyle
         }`}
         title="Italic (Ctrl+I)"
       >
@@ -52,7 +55,9 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
         type="button"
         onClick={() => editor.chain().focus().toggleHighlight().run()}
         className={`px-2 py-1 transition-colors ${
-          editor.isActive('highlight') ? 'ring-1 ring-ink' : ''
+          editor.isActive('highlight')
+            ? 'ring-2 ring-ink bg-marker text-marker-text font-bold shadow-xs'
+            : inactiveStyle
         }`}
         title="Highlight (Ctrl+Shift+H)"
       >
@@ -66,9 +71,7 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
         type="button"
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         className={`px-2 py-1 font-serif font-semibold transition-colors ${
-          editor.isActive('heading', { level: 2 })
-            ? 'bg-margin text-ink'
-            : 'text-pencil hover:text-ink'
+          editor.isActive('heading', { level: 2 }) ? activeStyle : inactiveStyle
         }`}
         title="Section Heading H2"
       >
@@ -79,9 +82,7 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
         type="button"
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         className={`px-2 py-1 font-serif font-semibold transition-colors ${
-          editor.isActive('heading', { level: 3 })
-            ? 'bg-margin text-ink'
-            : 'text-pencil hover:text-ink'
+          editor.isActive('heading', { level: 3 }) ? activeStyle : inactiveStyle
         }`}
         title="Sub-heading H3"
       >
@@ -95,7 +96,7 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
         type="button"
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         className={`px-2 py-1 transition-colors ${
-          editor.isActive('bulletList') ? 'bg-margin text-ink' : 'text-pencil hover:text-ink'
+          editor.isActive('bulletList') ? activeStyle : inactiveStyle
         }`}
         title="Bullet list"
       >
@@ -106,7 +107,7 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
         type="button"
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         className={`px-2 py-1 transition-colors ${
-          editor.isActive('orderedList') ? 'bg-margin text-ink' : 'text-pencil hover:text-ink'
+          editor.isActive('orderedList') ? activeStyle : inactiveStyle
         }`}
         title="Numbered list"
       >
@@ -118,7 +119,7 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
         type="button"
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         className={`px-2 py-1 transition-colors ${
-          editor.isActive('blockquote') ? 'bg-margin text-ink' : 'text-pencil hover:text-ink'
+          editor.isActive('blockquote') ? activeStyle : inactiveStyle
         }`}
         title="Blockquote"
       >
@@ -130,7 +131,7 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
         type="button"
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         className={`px-2 py-1 font-mono transition-colors ${
-          editor.isActive('codeBlock') ? 'bg-margin text-ink' : 'text-pencil hover:text-ink'
+          editor.isActive('codeBlock') ? activeStyle : inactiveStyle
         }`}
         title="Code block"
       >
@@ -168,7 +169,7 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
             .run()
         }
         className={`px-2 py-1 font-sans transition-colors ${
-          editor.isActive('table') ? 'bg-margin text-ink' : 'text-pencil hover:text-ink'
+          editor.isActive('table') ? activeStyle : inactiveStyle
         }`}
         title="Insert 3x3 table"
       >
@@ -227,7 +228,7 @@ export function Toolbar({ editor, onOpenWikiPicker, onInsertMermaid, onInsertIma
         type="button"
         onClick={setExternalLink}
         className={`px-2 py-1 transition-colors ${
-          editor.isActive('link') ? 'bg-margin text-ink' : 'text-pencil hover:text-ink'
+          editor.isActive('link') ? activeStyle : inactiveStyle
         }`}
         title="External link (Ctrl+K)"
       >

@@ -34,11 +34,73 @@ export function TopicView({ contentJson, onLinkFollow }: TopicViewProps) {
       );
     }
 
-    // Text with marks
+    // Text with marks or raw [[Title]] bracketed syntax
     if (node.type === 'text') {
-      let element: React.ReactNode = node.text;
+      let textContent = node.text || '';
 
-      if (node.marks) {
+      // Check if text has marks
+      const hasMarks = node.marks && node.marks.length > 0;
+
+      // Parse raw <mark>text</mark> and raw [[Topic Name]] patterns typed as plain text
+      const parseInlineDecorations = (text: string): React.ReactNode => {
+        // Combined regex for <mark>...</mark> and [[...]]
+        const regex = /(?:<mark>(.*?)<\/mark>)|(?:\[\[(.*?)\]\])/gi;
+        if (!regex.test(text)) {
+          return text;
+        }
+
+        const elements: React.ReactNode[] = [];
+        let lastIndex = 0;
+        let match: RegExpExecArray | null;
+
+        regex.lastIndex = 0;
+        while ((match = regex.exec(text)) !== null) {
+          const preText = text.substring(lastIndex, match.index);
+          if (preText) {
+            elements.push(preText);
+          }
+
+          if (match[1] !== undefined) {
+            // It was a <mark>...</mark> match
+            elements.push(
+              <mark key={`mark-${match.index}`} className="highlight-marker">
+                {match[1]}
+              </mark>
+            );
+          } else if (match[2] !== undefined) {
+            // It was a [[...]] match
+            const matchedText = match[2].trim();
+            if (matchedText) {
+              const targetSlug = matchedText
+                .toLowerCase()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '-');
+
+              elements.push(
+                <WikiLink
+                  key={`wiki-${match.index}`}
+                  slug={targetSlug}
+                  label={matchedText}
+                  onLinkFollow={onLinkFollow}
+                />
+              );
+            }
+          }
+
+          lastIndex = regex.lastIndex;
+        }
+
+        const remainingText = text.substring(lastIndex);
+        if (remainingText) {
+          elements.push(remainingText);
+        }
+
+        return <>{elements}</>;
+      };
+
+      let element: React.ReactNode = parseInlineDecorations(textContent);
+
+      if (hasMarks) {
         for (const mark of node.marks) {
           if (mark.type === 'bold') {
             element = <strong>{element}</strong>;
